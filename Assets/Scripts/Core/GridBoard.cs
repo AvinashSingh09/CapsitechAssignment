@@ -44,10 +44,7 @@ namespace GridChallenge.Core
         public int NextTileId;
     }
 
-    /// <summary>
-    /// Pure C# logical simulation for an N x M grid puzzle.
-    /// Completely decoupled from Unity rendering layer.
-    /// </summary>
+
     public class GridBoard
     {
         public readonly int Width;
@@ -64,8 +61,6 @@ namespace GridChallenge.Core
         private int _nextTileId = 1;
         private readonly Random _random;
 
-        // Circular ring-buffer for history to guarantee O(1) zero-allocation undo and no memory leaks
-        // ponytail: fixed 32-capacity ring buffer avoids GC pressure and deep-clone allocations
         private readonly BoardSnapshot[] _undoRingBuffer;
         private int _undoHead = 0;
         private int _undoCount = 0;
@@ -99,7 +94,6 @@ namespace GridChallenge.Core
             _undoHead = 0;
             _undoCount = 0;
 
-            // Place obstacles first
             for (int i = 0; i < obstacleCount; i++)
             {
                 var empty = GetEmptyCells();
@@ -108,7 +102,6 @@ namespace GridChallenge.Core
                 Grid[cell.x, cell.y] = new TileData(_nextTileId++, 0, TileType.Obstacle);
             }
 
-            // Spawn initial tiles
             for (int i = 0; i < initialTileCount; i++)
             {
                 SpawnRandomTile();
@@ -138,7 +131,6 @@ namespace GridChallenge.Core
             int turnMerges = 0;
             int turnScoreGained = 0;
 
-            // Traverse order depends on direction so we push outermost tiles first
             int startX = dx > 0 ? Width - 1 : 0;
             int endX   = dx > 0 ? -1 : Width;
             int stepX  = dx > 0 ? -1 : 1;
@@ -159,7 +151,6 @@ namespace GridChallenge.Core
                     int nextX = curX + dx;
                     int nextY = curY + dy;
 
-                    // Slide as far as possible
                     while (IsInBounds(nextX, nextY) && Grid[nextX, nextY].IsEmpty)
                     {
                         curX = nextX;
@@ -168,7 +159,6 @@ namespace GridChallenge.Core
                         nextY += dy;
                     }
 
-                    // Check for merge with next tile if in bounds
                     if (IsInBounds(nextX, nextY) &&
                         !mergedThisTurn[nextX, nextY] &&
                         !Grid[nextX, nextY].IsObstacle &&
@@ -204,7 +194,6 @@ namespace GridChallenge.Core
                     }
                     else if (curX != x || curY != y)
                     {
-                        // Slide without merge
                         Grid[curX, curY] = current;
                         Grid[x, y] = default;
                         boardChanged = true;
@@ -225,22 +214,18 @@ namespace GridChallenge.Core
 
             if (!boardChanged)
             {
-                // Discard unused snapshot
                 PopDiscardSnapshot();
                 return false;
             }
 
-            // Combo multiplier bonus for candidate initiative hook
             ComboCount = turnMerges;
             int comboMultiplier = turnMerges > 1 ? turnMerges : 1;
             Score += turnScoreGained * comboMultiplier;
 
             MovesRemaining--;
 
-            // Spawn next tile after successful shift
             spawnedTile = SpawnRandomTile();
 
-            // Evaluate game over conditions
             CheckGameStatus();
 
             return true;
@@ -289,7 +274,7 @@ namespace GridChallenge.Core
             if (empty.Count == 0) return null;
 
             var cell = empty[_random.Next(empty.Count)];
-            int value = _random.Next(10) == 0 ? 4 : 2; // standard 90% 2s, 10% 4s
+            int value = _random.Next(10) == 0 ? 4 : 2;
             var tile = new TileData(_nextTileId++, value, TileType.Normal);
             Grid[cell.x, cell.y] = tile;
             return tile;
@@ -331,7 +316,6 @@ namespace GridChallenge.Core
                 return;
             }
 
-            // Check if any empty cell exists
             for (int x = 0; x < Width; x++)
             {
                 for (int y = 0; y < Height; y++)
@@ -340,7 +324,6 @@ namespace GridChallenge.Core
                 }
             }
 
-            // Check if any adjacent merges are possible
             for (int x = 0; x < Width; x++)
             {
                 for (int y = 0; y < Height; y++)
