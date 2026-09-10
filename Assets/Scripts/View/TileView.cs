@@ -22,20 +22,30 @@ namespace GridChallenge.View
 
         private void Awake()
         {
-            _rectTransform = GetComponent<RectTransform>();
+            EnsureReferences();
+        }
+
+        private void EnsureReferences()
+        {
+            if (_rectTransform == null) _rectTransform = GetComponent<RectTransform>();
             if (background == null) background = GetComponent<Image>();
-            if (valueText == null) valueText = GetComponentInChildren<TextMeshProUGUI>();
+            if (valueText == null) valueText = GetComponentInChildren<TextMeshProUGUI>(true);
         }
 
         public void Setup(TileData data, Vector2Int pos, Vector2 anchoredPos, Vector2 size)
         {
+            EnsureReferences();
+
             TileId = data.Id;
             Value = data.Value;
             IsObstacle = data.IsObstacle;
             GridPosition = pos;
 
-            _rectTransform.sizeDelta = size;
-            _rectTransform.anchoredPosition = anchoredPos;
+            if (_rectTransform != null)
+            {
+                _rectTransform.sizeDelta = size;
+                _rectTransform.anchoredPosition = anchoredPos;
+            }
             transform.localScale = Vector3.zero;
 
             UpdateAppearance();
@@ -59,24 +69,36 @@ namespace GridChallenge.View
 
         private void UpdateAppearance()
         {
+            EnsureReferences();
+
             if (IsObstacle)
             {
                 if (background) background.color = new Color(0.28f, 0.28f, 0.32f); // Dark Slate
-                if (valueText) valueText.text = "BLOCK";
-                if (valueText) valueText.color = Color.white;
+                SetText("BLOCK", Color.white);
                 return;
             }
 
-            if (valueText)
-            {
-                valueText.text = Value > 0 ? Value.ToString() : "";
-                valueText.color = Value <= 4 ? new Color(0.47f, 0.43f, 0.40f) : Color.white;
-            }
+            string displayStr = Value > 0 ? Value.ToString() : "";
+            Color textColor = Value <= 4 ? new Color(0.47f, 0.43f, 0.40f) : Color.white;
+            SetText(displayStr, textColor);
 
             if (background)
             {
                 background.color = GetTileColor(Value);
             }
+        }
+
+        private void SetText(string text, Color color)
+        {
+            if (valueText == null) return;
+
+            valueText.text = text;
+            valueText.color = color;
+            valueText.alignment = TextAlignmentOptions.Center;
+            valueText.raycastTarget = false;
+            valueText.enableAutoSizing = true;
+            valueText.fontSizeMin = 14;
+            valueText.fontSizeMax = 36;
         }
 
         private Color GetTileColor(int value)
