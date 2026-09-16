@@ -28,3 +28,8 @@
 # OS
 .DS_Store
 Thumbs.db
+
+# Android / IL2CPP / Burst build artifacts
+.utmp/
+*_BackUpThisFolder_ButDontShipItWithYourGame/
+*_BurstDebugInformation_DoNotShip/
